@@ -23,6 +23,12 @@ public class SecretPlayer{
             client.sendYourTurn();
         }
     }
+    public void sendIllegalMove(){
+        OneClient client = weakClient.get();
+        if(client != null){
+            client.sendIllegalMove();
+        }
+    }
     public Integer getCardIndex(){
         OneClient client = weakClient.get();
         if(client != null){
@@ -33,6 +39,6 @@ public class SecretPlayer{
         return null;
     }
     public Player getPlayer(){
-        return new Player(this.name);
+        return new Player(this.name, this.cards.size());
     }
 }

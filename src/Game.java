@@ -11,6 +11,13 @@ public class Game extends Thread {
     int currentPlayerIndex;
     Deque<Card> cardsOnTable = new LinkedList<Card>();
 
+    Game(List<SecretPlayer> players){
+        this.players = players;
+        loadInitialCards();
+        giveOutCards();
+        currentPlayerIndex = ThreadLocalRandom.current().nextInt(0, players.size());
+    }
+
     private void loadInitialCards(){
         Card.Color[] colors = {Card.Color.RED, Card.Color.YELLOW, Card.Color.GREEN, Card.Color.BLUE};
         for(Card.Color color : colors){
@@ -36,6 +43,7 @@ public class Game extends Thread {
         }
         Collections.shuffle(availableCards);
     }
+
     private void giveOutCards(){
         for(SecretPlayer secretPlayer : players){
             for(int i = 0; i < 7; i++){
@@ -43,13 +51,9 @@ public class Game extends Thread {
                 availableCards.remove(0);
             }
         }
+        cardsOnTable.add(availableCards.get(0));
+        availableCards.remove(0);
         updateAllPlayersCards();
-    }
-    Game(List<SecretPlayer> players){
-        this.players = players;
-        loadInitialCards();
-        giveOutCards();
-        currentPlayerIndex = ThreadLocalRandom.current().nextInt(0, players.size());
     }
 
     private int chooseCard(SecretPlayer currentPlayer){
@@ -80,19 +84,33 @@ public class Game extends Thread {
     }
 
     private boolean isMoveLegal(Card choosenCard){
-        return true; // TODO
+        if(choosenCard.type == Card.Type.WILD_DRAW_FOUR){
+            // TODO check when legal - https://www.unorules.com/
+            // for now always legal
+            return true;
+        }else if(cardsOnTable.peekLast().color == choosenCard.color){
+            return true;
+        }else if(cardsOnTable.peekLast().type == choosenCard.type){
+            return true;
+        }
+        return false;
     }
     
     public void run() {
         while(true){
             SecretPlayer currentPlayer = players.get(currentPlayerIndex);
             int choosenCardIndex = chooseCard(currentPlayer);
-            cardsOnTable.add(currentPlayer.cards.get(choosenCardIndex));
-            currentPlayer.cards.remove(choosenCardIndex);
-            updateAllPlayersCards();
-            nextPlayer();
+            Card choosenCard = currentPlayer.cards.get(choosenCardIndex);
+            if(isMoveLegal(choosenCard)){
+                cardsOnTable.add(choosenCard);
+                currentPlayer.cards.remove(choosenCardIndex);
+                updateAllPlayersCards();
+                nextPlayer();
+            } else{
+                currentPlayer.sendIllegalMove();
+            }
             try {
-                Thread.sleep(5000);
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 // TODO
             }

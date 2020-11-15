@@ -16,6 +16,7 @@ public class Card implements Serializable {
     public Card(Type type, Color color){
         this.type = type;
         this.color = color;
-        //TODO: check if card is legal
+        // TODO: check if card is legal
+        // edit: checking if card is legal is unnecessary, because the Server constructs cards.
     }
 }

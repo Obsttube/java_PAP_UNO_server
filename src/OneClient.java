@@ -25,49 +25,41 @@ public class OneClient extends Thread {
         objectOutputStream = new ObjectOutputStream(outputStream);
     }
 
-    public void sendPlayerList(List<Player> players){
+    private void sendServerRequest(ServerRequest serverRequest){
         try{
-            if(outputStream == null)
-                outputStream = socket.getOutputStream();
-            if(objectOutputStream == null)
+            if(objectOutputStream == null){
+                if(outputStream == null)
+                    outputStream = socket.getOutputStream();
                 objectOutputStream = new ObjectOutputStream(outputStream);
-            ServerRequest serverRequest = new ServerRequest(ServerRequest.RequestType.LIST_OF_PLAYERS);
-            serverRequest.players = players;
+            }
             objectOutputStream.reset();
             objectOutputStream.writeObject(serverRequest);
         } catch (IOException e){
             // TODO
         }
+    }
+
+    public void sendPlayerList(List<Player> players){
+        ServerRequest serverRequest = new ServerRequest(ServerRequest.RequestType.LIST_OF_PLAYERS);
+        serverRequest.players = players;
+        sendServerRequest(serverRequest);
     }
 
     public void sendCards(List<Card> hand, Card table){
-        try{
-            if(outputStream == null)
-                outputStream = socket.getOutputStream();
-            if(objectOutputStream == null)
-                objectOutputStream = new ObjectOutputStream(outputStream);
-            ServerRequest serverRequest = new ServerRequest(ServerRequest.RequestType.YOUR_CARDS);
-            serverRequest.cardsOnHand = hand;
-            serverRequest.cardOnTable = table;
-            objectOutputStream.reset();
-            objectOutputStream.writeObject(serverRequest);
-        } catch (IOException e){
-            // TODO
-        }
+        ServerRequest serverRequest = new ServerRequest(ServerRequest.RequestType.YOUR_CARDS);
+        serverRequest.cardsOnHand = hand;
+        serverRequest.cardOnTable = table;
+        sendServerRequest(serverRequest);
     }
 
     public void sendYourTurn(){
-        try{
-            if(outputStream == null)
-                outputStream = socket.getOutputStream();
-            if(objectOutputStream == null)
-                objectOutputStream = new ObjectOutputStream(outputStream);
-            ServerRequest serverRequest = new ServerRequest(ServerRequest.RequestType.YOUR_TURN);
-            objectOutputStream.reset();
-            objectOutputStream.writeObject(serverRequest);
-        } catch (IOException e){
-            // TODO
-        }
+        ServerRequest serverRequest = new ServerRequest(ServerRequest.RequestType.YOUR_TURN);
+        sendServerRequest(serverRequest);
+    }
+
+    public void sendIllegalMove(){
+        ServerRequest serverRequest = new ServerRequest(ServerRequest.RequestType.ILLEGAL_MOVE);
+        sendServerRequest(serverRequest);
     }
     
     public void run() {
@@ -77,21 +69,20 @@ public class OneClient extends Thread {
             ServerRequest serverRequest;
 
             objectInputStream = new ObjectInputStream(inputStream);
+
             clientRequest = (ClientRequest)objectInputStream.readObject();
             System.out.println(clientRequest.playerName + ": " + clientRequest.requestType); // LOGIN
             this.secretPlayer = new SecretPlayer(clientRequest.playerName, this);
 
             serverRequest = new ServerRequest(ServerRequest.RequestType.LOGIN_SUCCESSFUL);
-            objectOutputStream.reset();
-            objectOutputStream.writeObject(serverRequest);
+            sendServerRequest(serverRequest);
 
             clientRequest = (ClientRequest)objectInputStream.readObject();
             System.out.println(this.secretPlayer.name + ": " + clientRequest.requestType); // GET_LOBBY_LIST
 
             serverRequest = new ServerRequest(ServerRequest.RequestType.LOBBY_LIST);
             serverRequest.lobbyList = Main.lobbyList;
-            objectOutputStream.reset();
-            objectOutputStream.writeObject(serverRequest);
+            sendServerRequest(serverRequest);
 
             clientRequest = (ClientRequest)objectInputStream.readObject();
             System.out.println(this.secretPlayer.name + ": " + clientRequest.requestType); // JOIN_LOBBY
