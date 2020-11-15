@@ -53,12 +53,19 @@ public class Game extends Thread {
                 availableCards.remove(0);
             }
         }
-        cardsOnTable.add(availableCards.get(0));
+        cardsOnTable.addLast(availableCards.get(0));
         availableCards.remove(0);
         updateAllPlayersCards();
     }
 
-    private void giveCardFromPile(SecretPlayer secretPlayer){ // TODO: if pile is empty, get cards from table and shuffle
+    private void giveCardFromPile(SecretPlayer secretPlayer){
+        if(availableCards.size() == 0){
+            while(cardsOnTable.size() > 1){
+                availableCards.add(cardsOnTable.peekFirst());
+                cardsOnTable.removeFirst();
+            }
+            Collections.shuffle(availableCards);
+        }
         secretPlayer.cards.add(availableCards.get(0));
         availableCards.remove(0);
     }
@@ -111,7 +118,9 @@ public class Game extends Thread {
     }
 
     private boolean isMoveLegal(SecretPlayer currentPlayer, int choosenCardIndex){
-        if(choosenCardIndex >= currentPlayer.cards.size())
+        if(choosenCardIndex == -1)
+            return true;
+        if(choosenCardIndex >= currentPlayer.cards.size() || choosenCardIndex < 0)
             return false;
         Card choosenCard = currentPlayer.cards.get(choosenCardIndex);
         Card table = cardsOnTable.peekLast();
@@ -136,8 +145,14 @@ public class Game extends Thread {
             SecretPlayer currentPlayer = players.get(currentPlayerIndex);
             int choosenCardIndex = chooseCard(currentPlayer);
             if(isMoveLegal(currentPlayer, choosenCardIndex)){
+                if(choosenCardIndex == -1){
+                    giveCardFromPile(currentPlayer);
+                    updateAllPlayersCards();
+                    nextPlayer();
+                    continue;
+                }
                 Card choosenCard = currentPlayer.cards.get(choosenCardIndex);
-                cardsOnTable.add(choosenCard);
+                cardsOnTable.addLast(choosenCard);
                 currentWildColor = null;
                 currentPlayer.cards.remove(choosenCardIndex);
                 switch(choosenCard.type){
