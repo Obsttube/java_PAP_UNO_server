@@ -18,6 +18,7 @@ public class OneClient extends Thread {
     
     SecretPlayer secretPlayer = null;
     Integer choosenCardIndex = null;
+    Card.Color choosenColor = null;
 
     OneClient(Socket socket) throws IOException {
         this.socket = socket;
@@ -45,10 +46,11 @@ public class OneClient extends Thread {
         sendServerRequest(serverRequest);
     }
 
-    public void sendCards(List<Card> hand, Card table){
+    public void sendCards(List<Card> hand, Card table, Card.Color currentWildColor){
         ServerRequest serverRequest = new ServerRequest(ServerRequest.RequestType.YOUR_CARDS);
         serverRequest.cardsOnHand = hand;
         serverRequest.cardOnTable = table;
+        serverRequest.currentWildColor = currentWildColor;
         sendServerRequest(serverRequest);
     }
 
@@ -59,6 +61,11 @@ public class OneClient extends Thread {
 
     public void sendIllegalMove(){
         ServerRequest serverRequest = new ServerRequest(ServerRequest.RequestType.ILLEGAL_MOVE);
+        sendServerRequest(serverRequest);
+    }
+
+    public void sendChooseColor(){
+        ServerRequest serverRequest = new ServerRequest(ServerRequest.RequestType.CHOOSE_COLOR);
         sendServerRequest(serverRequest);
     }
     
@@ -101,6 +108,9 @@ public class OneClient extends Thread {
                         break;
                     case CHOOSE_CARD:
                         this.choosenCardIndex = clientRequest.choosenCardIndex;
+                        break;
+                    case CHOOSE_COLOR:
+                        this.choosenColor = clientRequest.choosenColor;
                         break;
                     default:
                         break;

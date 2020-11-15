@@ -10,6 +10,8 @@ public class Game extends Thread {
     List<SecretPlayer> players = new ArrayList<>();
     int currentPlayerIndex;
     Deque<Card> cardsOnTable = new LinkedList<Card>();
+    Card.Color currentWildColor = null;
+    private int direction = 1;
 
     Game(List<SecretPlayer> players){
         this.players = players;
@@ -56,6 +58,15 @@ public class Game extends Thread {
         updateAllPlayersCards();
     }
 
+    private void giveCardFromPile(SecretPlayer secretPlayer){ // TODO: if pile is empty, get cards from table and shuffle
+        secretPlayer.cards.add(availableCards.get(0));
+        availableCards.remove(0);
+    }
+
+    private void sendCurrentCards(SecretPlayer secretPlayer){
+        secretPlayer.sendCurrentCards(cardsOnTable.peekLast(), currentWildColor);
+    }
+
     private int chooseCard(SecretPlayer currentPlayer){
         currentPlayer.sendYourTurn();
         Integer cardIndex = null;
@@ -71,26 +82,50 @@ public class Game extends Thread {
         return cardIndex.intValue();
     }
 
+    private Card.Color chooseColor(SecretPlayer currentPlayer){
+        currentPlayer.sendChooseColor();
+        Card.Color color = null;
+        while(color == null){
+            color = currentPlayer.getChoosenColor();
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                // TODO
+            }
+        }
+        System.out.println("color: " + color);
+        return color;
+    }
+
     private void nextPlayer(){
-        if(currentPlayerIndex >= players.size() - 1)
+        currentPlayerIndex += direction;
+        if(currentPlayerIndex >= players.size())
             currentPlayerIndex = 0;
-        else
-            currentPlayerIndex++;
+        else if(currentPlayerIndex < 0)
+        currentPlayerIndex = players.size() - 1;
     }
 
     private void updateAllPlayersCards(){
         for(SecretPlayer secretPlayer : players)
-            secretPlayer.sendCurrentCards(cardsOnTable.peekLast());
+            sendCurrentCards(secretPlayer);
     }
 
-    private boolean isMoveLegal(Card choosenCard){
-        if(choosenCard.type == Card.Type.WILD_DRAW_FOUR){
+    private boolean isMoveLegal(SecretPlayer currentPlayer, int choosenCardIndex){
+        if(choosenCardIndex >= currentPlayer.cards.size())
+            return false;
+        Card choosenCard = currentPlayer.cards.get(choosenCardIndex);
+        Card table = cardsOnTable.peekLast();
+        if(choosenCard.type == Card.Type.WILD){
+            return true;
+        }else if(choosenCard.type == Card.Type.WILD_DRAW_FOUR){
             // TODO check when legal - https://www.unorules.com/
             // for now always legal
             return true;
-        }else if(cardsOnTable.peekLast().color == choosenCard.color){
+        }else if(table.color == choosenCard.color){
             return true;
-        }else if(cardsOnTable.peekLast().type == choosenCard.type){
+        }else if(table.type == choosenCard.type){
+            return true;
+        }else if(currentWildColor == choosenCard.color){
             return true;
         }
         return false;
@@ -100,10 +135,50 @@ public class Game extends Thread {
         while(true){
             SecretPlayer currentPlayer = players.get(currentPlayerIndex);
             int choosenCardIndex = chooseCard(currentPlayer);
-            Card choosenCard = currentPlayer.cards.get(choosenCardIndex);
-            if(isMoveLegal(choosenCard)){
+            if(isMoveLegal(currentPlayer, choosenCardIndex)){
+                Card choosenCard = currentPlayer.cards.get(choosenCardIndex);
                 cardsOnTable.add(choosenCard);
+                currentWildColor = null;
                 currentPlayer.cards.remove(choosenCardIndex);
+                switch(choosenCard.type){
+                    case SKIP:
+                        nextPlayer();
+                        break;
+                    case REVERSE:
+                        direction *= -1;
+                        break;
+                    case ADD_TWO:
+                        nextPlayer();
+                        currentPlayer = players.get(currentPlayerIndex);
+                        giveCardFromPile(currentPlayer);
+                        giveCardFromPile(currentPlayer);
+                        sendCurrentCards(currentPlayer);
+                        break;
+                    case WILD: {
+                        Card.Color choosenColor = chooseColor(currentPlayer);
+                        if(choosenColor == Card.Color.BLACK)
+                            currentPlayer.sendIllegalMove();
+                        else
+                            currentWildColor = choosenColor;
+                        break;
+                    }
+                    case WILD_DRAW_FOUR: { // TODO: others should be able to check; https://www.unorules.com/
+                        Card.Color choosenColor = chooseColor(currentPlayer);
+                        if(choosenColor == Card.Color.BLACK)
+                            currentPlayer.sendIllegalMove();
+                        else
+                            currentWildColor = choosenColor;
+                        nextPlayer();
+                        currentPlayer = players.get(currentPlayerIndex);
+                        giveCardFromPile(currentPlayer);
+                        giveCardFromPile(currentPlayer);
+                        giveCardFromPile(currentPlayer);
+                        giveCardFromPile(currentPlayer);
+                        sendCurrentCards(currentPlayer);
+                        break;
+                    }
+                    default:
+                }
                 updateAllPlayersCards();
                 nextPlayer();
             } else{

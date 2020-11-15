@@ -10,10 +10,10 @@ public class SecretPlayer{
         this.name = name;
         this.weakClient = new WeakReference<OneClient>(client);
     }
-    public void sendCurrentCards(Card table){
+    public void sendCurrentCards(Card table, Card.Color currentWildColor){
         OneClient client = weakClient.get();
         if(client != null){
-            client.sendCards(cards, table);
+            client.sendCards(cards, table, currentWildColor);
         }
     }
     public void sendYourTurn(){
@@ -29,12 +29,28 @@ public class SecretPlayer{
             client.sendIllegalMove();
         }
     }
+    public void sendChooseColor(){
+        OneClient client = weakClient.get();
+        if(client != null){
+            client.choosenColor = null;
+            client.sendChooseColor();
+        }
+    }
     public Integer getCardIndex(){
         OneClient client = weakClient.get();
         if(client != null){
             Integer choosenCardIndex = client.choosenCardIndex;
             client.choosenCardIndex = null;
             return choosenCardIndex;
+        }
+        return null;
+    }
+    public Card.Color getChoosenColor(){
+        OneClient client = weakClient.get();
+        if(client != null){
+            Card.Color choosenColor = client.choosenColor;
+            client.choosenColor = null;
+            return choosenColor;
         }
         return null;
     }
