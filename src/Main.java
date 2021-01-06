@@ -40,7 +40,7 @@ public class Main {
     }
 
     public static void main(String args[]) throws IOException, InterruptedException {
-        lobbyList.add(new Lobby("1", "example"));
+        lobbyList.add(new Lobby("example"));
         while (true) {
             ServerSocket serverSocket = new ServerSocket(25566);
             System.out.println("Waiting for a connection"); 

@@ -112,6 +112,9 @@ public class OneClient extends Thread {
                         Main.lobby1_players.add(new WeakReference<>(this));
                         Main.broadcastPlayerList(); // send player list to all players
                         break;
+                    case CREATE_LOBBY:
+                        Main.lobbyList.add(new Lobby(clientRequest.lobbyName));
+                        break;
                     default:
                         break;
                 }
