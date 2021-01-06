@@ -6,6 +6,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "CodeLens (Launch) - Database",
+            "request": "launch",
+            "mainClass": "Database",
+            "projectName": "server_66ba0cf0"
+        },
+        {
+            "type": "java",
             "name": "Server",
             "request": "launch",
             "mainClass": "Main"
