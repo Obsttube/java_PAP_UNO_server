@@ -77,29 +77,14 @@ public class OneClient extends Thread {
 
             objectInputStream = new ObjectInputStream(inputStream);
 
-            clientRequest = (ClientRequest)objectInputStream.readObject();
-            System.out.println(clientRequest.playerName + ": " + clientRequest.requestType); // LOGIN
-            this.secretPlayer = new SecretPlayer(clientRequest.playerName, this);
-
-            serverRequest = new ServerRequest(ServerRequest.RequestType.LOGIN_SUCCESSFUL);
-            sendServerRequest(serverRequest);
-
-            clientRequest = (ClientRequest)objectInputStream.readObject();
-            System.out.println(this.secretPlayer.name + ": " + clientRequest.requestType); // GET_LOBBY_LIST
-
-            serverRequest = new ServerRequest(ServerRequest.RequestType.LOBBY_LIST);
-            serverRequest.lobbyList = Main.lobbyList;
-            sendServerRequest(serverRequest);
-
-            clientRequest = (ClientRequest)objectInputStream.readObject();
-            System.out.println(this.secretPlayer.name + ": " + clientRequest.requestType); // JOIN_LOBBY
-            System.out.println(this.secretPlayer.name + ": " + clientRequest.lobbyId);
-            Main.lobby1_players.add(new WeakReference<>(this));
-            Main.broadcastPlayerList(); // send player list to all players
+            // TODO add stages and allow some functions only after login or after joining a lobby
 
             while(true){
                 clientRequest = (ClientRequest)objectInputStream.readObject();
-                System.out.println(this.secretPlayer.name + ": " + clientRequest.requestType);
+                if (this.secretPlayer != null)
+                    System.out.println(this.secretPlayer.name + ": " + clientRequest.requestType);
+                else
+                    System.out.println(clientRequest.requestType);
                 switch(clientRequest.requestType){
                     case CLICK_START:
                         if(Main.game == null){
@@ -112,6 +97,21 @@ public class OneClient extends Thread {
                     case CHOOSE_COLOR:
                         this.choosenColor = clientRequest.choosenColor;
                         break;
+                    case LOGIN:
+                        this.secretPlayer = new SecretPlayer(clientRequest.playerName, this);
+                        serverRequest = new ServerRequest(ServerRequest.RequestType.LOGIN_SUCCESSFUL);
+                        sendServerRequest(serverRequest);
+                        break;
+                    case GET_LOBBY_LIST:
+                        serverRequest = new ServerRequest(ServerRequest.RequestType.LOBBY_LIST);
+                        serverRequest.lobbyList = Main.lobbyList;
+                        sendServerRequest(serverRequest);
+                        break;
+                    case JOIN_LOBBY:
+                        System.out.println(this.secretPlayer.name + ": " + clientRequest.lobbyId);
+                        Main.lobby1_players.add(new WeakReference<>(this));
+                        Main.broadcastPlayerList(); // send player list to all players
+                        break;
                     default:
                         break;
                 }
@@ -121,6 +121,7 @@ public class OneClient extends Thread {
             Logger.getLogger(getName()).log(Level.SEVERE, e.getMessage(), e);
         } catch (IOException e) {
             // TODO
+            //Logger.getLogger(getName()).log(Level.SEVERE, e.getMessage(), e);
         }
         if (socket != null) {
             try {
