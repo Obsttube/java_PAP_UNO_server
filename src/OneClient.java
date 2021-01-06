@@ -5,6 +5,7 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -74,6 +75,7 @@ public class OneClient extends Thread {
             inputStream = socket.getInputStream();
             ClientRequest clientRequest;
             ServerRequest serverRequest;
+            String selectedLobbyId = null;
 
             objectInputStream = new ObjectInputStream(inputStream);
 
@@ -87,8 +89,8 @@ public class OneClient extends Thread {
                     System.out.println(clientRequest.requestType);
                 switch(clientRequest.requestType){
                     case CLICK_START:
-                        if(Main.game == null){
-                            Main.createGame();
+                        if(Main.lobby_games.get(selectedLobbyId) == null && selectedLobbyId != null) {
+                            Main.createGame(selectedLobbyId); // send player list to all players
                         }
                         break;
                     case CHOOSE_CARD:
@@ -109,8 +111,34 @@ public class OneClient extends Thread {
                         break;
                     case JOIN_LOBBY:
                         System.out.println(this.secretPlayer.name + ": " + clientRequest.lobbyId);
-                        Main.lobby1_players.add(new WeakReference<>(this));
-                        Main.broadcastPlayerList(); // send player list to all players
+                        //Main.lobby1_players.add(new WeakReference<>(this));
+                        for (Lobby lobby : Main.lobbyList){
+                            if (lobby.id.equals(clientRequest.lobbyId)){
+                                selectedLobbyId = clientRequest.lobbyId;
+                                break;
+                            }
+                        }
+                        if (selectedLobbyId != null) {
+                            List<WeakReference<OneClient>> players = Main.lobby_players.get(selectedLobbyId);
+                            if (players == null){
+                                players = new ArrayList<>();
+                                players.add(new WeakReference<>(this));
+                                Main.lobby_players.put(selectedLobbyId, players);
+                            }else{
+                                players.add(new WeakReference<>(this));
+                                Main.lobby_players.put(selectedLobbyId, players);
+                            }
+                            WeakReference<OneClient> weakOneClient = null;
+                            for (WeakReference<OneClient> client : Main.clients_list){
+                                OneClient oneClient = client.get();
+                                if (oneClient != null && oneClient == this){
+                                    weakOneClient = client;
+                                }
+                            }
+                            if (weakOneClient != null)
+                                Main.clients_list.remove(weakOneClient);
+                            Main.broadcastPlayerList(selectedLobbyId); // send player list to all players
+                        }
                         break;
                     case CREATE_LOBBY:
                         Main.lobbyList.add(new Lobby(clientRequest.lobbyName));
