@@ -8,11 +8,12 @@ import java.util.List;
 
 public class Main {
 
-    public static List<Lobby> lobbyList = new ArrayList<>();
+    //public static List<Lobby> lobbyList = new ArrayList<>();
     public static List<WeakReference<OneClient>> clients_list = new ArrayList<>();
     //public static List<WeakReference<OneClient>> lobby1_players = new ArrayList<>();
     public static Hashtable<String, List<WeakReference<OneClient>>> lobby_players = new Hashtable<>(); // <lobbyId, List<...>>
     public static Hashtable<String, Game> lobby_games = new Hashtable<>(); // <lobbyId, List<...>>
+    public static Hashtable<String, Lobby> lobbies = new Hashtable<>(); // <lobbyId, List<...>>
     //public static Game game;
 
     public static void broadcastPlayerList(String lobbyId){
@@ -38,12 +39,15 @@ public class Main {
                 players.add(client.secretPlayer);
             }
         }
+        lobby_players.remove(lobbyId);
+        lobbies.remove(lobbyId);
         lobby_games.put(lobbyId, new Game(players));
         lobby_games.get(lobbyId).start();
     }
 
     public static void main(String args[]) throws IOException, InterruptedException {
-        lobbyList.add(new Lobby("example"));
+        Lobby lobby = new Lobby("example");
+        lobbies.put(lobby.id, lobby);
         while (true) {
             ServerSocket serverSocket = new ServerSocket(25566);
             System.out.println("Waiting for a connection"); 

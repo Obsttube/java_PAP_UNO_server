@@ -6,17 +6,18 @@ import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class OneClient extends Thread {
-    private Socket socket=null;
+    private Socket socket = null;
     private OutputStream outputStream;
     private InputStream inputStream;
     private ObjectOutputStream objectOutputStream;
     private ObjectInputStream objectInputStream;
-    
+
     SecretPlayer secretPlayer = null;
     Integer choosenCardIndex = null;
     Card.Color choosenColor = null;
@@ -27,27 +28,27 @@ public class OneClient extends Thread {
         objectOutputStream = new ObjectOutputStream(outputStream);
     }
 
-    private void sendServerRequest(ServerRequest serverRequest){
-        try{
-            if(objectOutputStream == null){
-                if(outputStream == null)
+    private void sendServerRequest(ServerRequest serverRequest) {
+        try {
+            if (objectOutputStream == null) {
+                if (outputStream == null)
                     outputStream = socket.getOutputStream();
                 objectOutputStream = new ObjectOutputStream(outputStream);
             }
             objectOutputStream.reset();
             objectOutputStream.writeObject(serverRequest);
-        } catch (IOException e){
+        } catch (IOException e) {
             // TODO
         }
     }
 
-    public void sendPlayerList(List<Player> players){
+    public void sendPlayerList(List<Player> players) {
         ServerRequest serverRequest = new ServerRequest(ServerRequest.RequestType.LIST_OF_PLAYERS);
         serverRequest.players = players;
         sendServerRequest(serverRequest);
     }
 
-    public void sendCards(List<Card> hand, Card table, Card.Color currentWildColor){
+    public void sendCards(List<Card> hand, Card table, Card.Color currentWildColor) {
         ServerRequest serverRequest = new ServerRequest(ServerRequest.RequestType.YOUR_CARDS);
         serverRequest.cardsOnHand = hand;
         serverRequest.cardOnTable = table;
@@ -55,21 +56,21 @@ public class OneClient extends Thread {
         sendServerRequest(serverRequest);
     }
 
-    public void sendYourTurn(){
+    public void sendYourTurn() {
         ServerRequest serverRequest = new ServerRequest(ServerRequest.RequestType.YOUR_TURN);
         sendServerRequest(serverRequest);
     }
 
-    public void sendIllegalMove(){
+    public void sendIllegalMove() {
         ServerRequest serverRequest = new ServerRequest(ServerRequest.RequestType.ILLEGAL_MOVE);
         sendServerRequest(serverRequest);
     }
 
-    public void sendChooseColor(){
+    public void sendChooseColor() {
         ServerRequest serverRequest = new ServerRequest(ServerRequest.RequestType.CHOOSE_COLOR);
         sendServerRequest(serverRequest);
     }
-    
+
     public void run() {
         try {
             inputStream = socket.getInputStream();
@@ -79,17 +80,18 @@ public class OneClient extends Thread {
 
             objectInputStream = new ObjectInputStream(inputStream);
 
-            // TODO add stages and allow some functions only after login or after joining a lobby
+            // TODO add stages and allow some functions only after login or after joining a
+            // lobby
 
-            while(true){
-                clientRequest = (ClientRequest)objectInputStream.readObject();
+            while (true) {
+                clientRequest = (ClientRequest) objectInputStream.readObject();
                 if (this.secretPlayer != null)
                     System.out.println(this.secretPlayer.name + ": " + clientRequest.requestType);
                 else
                     System.out.println(clientRequest.requestType);
-                switch(clientRequest.requestType){
+                switch (clientRequest.requestType) {
                     case CLICK_START:
-                        if(Main.lobby_games.get(selectedLobbyId) == null && selectedLobbyId != null) {
+                        if (Main.lobby_games.get(selectedLobbyId) == null && selectedLobbyId != null) {
                             Main.createGame(selectedLobbyId); // send player list to all players
                         }
                         break;
@@ -106,32 +108,27 @@ public class OneClient extends Thread {
                         break;
                     case GET_LOBBY_LIST:
                         serverRequest = new ServerRequest(ServerRequest.RequestType.LOBBY_LIST);
-                        serverRequest.lobbyList = Main.lobbyList;
+                        serverRequest.lobbyList = new ArrayList<Lobby>(Main.lobbies.values());
                         sendServerRequest(serverRequest);
                         break;
                     case JOIN_LOBBY:
                         System.out.println(this.secretPlayer.name + ": " + clientRequest.lobbyId);
-                        //Main.lobby1_players.add(new WeakReference<>(this));
-                        for (Lobby lobby : Main.lobbyList){
-                            if (lobby.id.equals(clientRequest.lobbyId)){
-                                selectedLobbyId = clientRequest.lobbyId;
-                                break;
-                            }
-                        }
+                        if (Main.lobbies.get(clientRequest.lobbyId) != null)
+                            selectedLobbyId = clientRequest.lobbyId;
                         if (selectedLobbyId != null) {
                             List<WeakReference<OneClient>> players = Main.lobby_players.get(selectedLobbyId);
-                            if (players == null){
+                            if (players == null) {
                                 players = new ArrayList<>();
                                 players.add(new WeakReference<>(this));
                                 Main.lobby_players.put(selectedLobbyId, players);
-                            }else{
+                            } else {
                                 players.add(new WeakReference<>(this));
                                 Main.lobby_players.put(selectedLobbyId, players);
                             }
                             WeakReference<OneClient> weakOneClient = null;
-                            for (WeakReference<OneClient> client : Main.clients_list){
+                            for (WeakReference<OneClient> client : Main.clients_list) {
                                 OneClient oneClient = client.get();
-                                if (oneClient != null && oneClient == this){
+                                if (oneClient != null && oneClient == this) {
                                     weakOneClient = client;
                                 }
                             }
@@ -141,7 +138,8 @@ public class OneClient extends Thread {
                         }
                         break;
                     case CREATE_LOBBY:
-                        Main.lobbyList.add(new Lobby(clientRequest.lobbyName));
+                        Lobby lobby = new Lobby(clientRequest.lobbyName);
+                        Main.lobbies.put(lobby.id, lobby);
                         break;
                     default:
                         break;
@@ -152,7 +150,7 @@ public class OneClient extends Thread {
             Logger.getLogger(getName()).log(Level.SEVERE, e.getMessage(), e);
         } catch (IOException e) {
             // TODO
-            //Logger.getLogger(getName()).log(Level.SEVERE, e.getMessage(), e);
+            // Logger.getLogger(getName()).log(Level.SEVERE, e.getMessage(), e);
         }
         if (socket != null) {
             try {
@@ -162,5 +160,9 @@ public class OneClient extends Thread {
             }
         }
         System.out.println("Connection closed");
-    }  
+    }
+
+    private List<Lobby> List(Collection<Lobby> values) {
+        return null;
+    }
 }
